@@ -1,0 +1,11 @@
+[package]
+name = "nekit"
+version = "0.1.0"
+authors = ["zhuhaow <zhuhaow@gmail.com>"]
+
+[dependencies]
+tokio = "^0.1"
+bytes = "^0.4"
+trust-dns-resolver = "^0.10"
+hyper = "^0.12"
+futures = "^0.1"
