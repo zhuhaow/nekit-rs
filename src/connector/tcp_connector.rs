@@ -2,17 +2,17 @@ use connector::Connector;
 use tokio::{net::TcpStream, prelude::*};
 use utils::{Endpoint, Error, Resolver};
 
-pub struct TcpConnector {
-    resolver: Box<Resolver>,
+pub struct TcpConnector<R: Resolver + Send> {
+    resolver: R,
 }
 
-impl TcpConnector {
-    pub fn new(resolver: Box<Resolver>) -> Self {
+impl<R: Resolver + Send> TcpConnector<R> {
+    pub fn new(resolver: R) -> Self {
         TcpConnector { resolver }
     }
 }
 
-impl Connector<TcpStream> for TcpConnector {
+impl<R: Resolver + Send> Connector<TcpStream> for TcpConnector<R> {
     fn connect(
         mut self,
         endpoint: &Endpoint,
@@ -20,6 +20,7 @@ impl Connector<TcpStream> for TcpConnector {
         Box::new(
             self.resolver
                 .resolve_endpoint(endpoint)
+                // TODO: Try all IPs
                 .and_then(|addrs| TcpStream::connect(addrs.first().unwrap()).from_err()),
         )
     }
