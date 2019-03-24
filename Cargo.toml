@@ -10,3 +10,8 @@ trust-dns-resolver = "^0.10"
 hyper = "^0.12"
 futures = "^0.1"
 maxminddb = "^0.12"
+
+[lib]
+name = "nekit"
+path = "src/lib.rs"
+crate-type = ["staticlib"]
