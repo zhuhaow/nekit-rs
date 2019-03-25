@@ -14,4 +14,8 @@ maxminddb = "^0.12"
 [lib]
 name = "nekit"
 path = "src/lib.rs"
-crate-type = ["staticlib"]
+crate-type = ["lib", "staticlib"]
+
+[[example]]
+name = "proxy"
+path = "examples/proxy.rs"
