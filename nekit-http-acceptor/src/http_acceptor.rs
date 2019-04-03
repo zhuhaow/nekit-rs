@@ -67,8 +67,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
         let fill_session =
             req_receiver
                 .map_err(|_| panic!())
-                .and_then(move |req| match req.method() {
-                    &Method::CONNECT => {
+                .and_then(move |req| match *req.method() {
+                    Method::CONNECT => {
                         if let (Some(host), Some(port)) = (
                             req.uri().host().map(|h| h.to_string()),
                             req.uri().port_part().map(|p| p.as_u16()),
@@ -78,8 +78,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
                                 is_connect: true,
                                 connection: None,
                                 first_req: req,
-                                client: client,
-                                target_endpoint: Endpoint::HostName(host, port).into(),
+                                client,
+                                target_endpoint: Endpoint::HostName(host, port),
                             })
                         } else {
                             future::err(HttpError::InvalidConnectUrl)
@@ -99,8 +99,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
                                 is_connect: false,
                                 connection: None,
                                 first_req: req,
-                                client: client,
-                                target_endpoint: Endpoint::HostName(host, port).into(),
+                                client,
+                                target_endpoint: Endpoint::HostName(host, port),
                             })
                         } else {
                             future::err(HttpError::InvalidUrl)
@@ -128,8 +128,9 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
     }
 }
 
+type ResponseSender = oneshot::Sender<Box<Future<Item = Response<Body>, Error = Error> + Send>>;
 pub struct MidHandshake<Next: AsyncRead + AsyncWrite + Send + 'static> {
-    res_channel: Option<oneshot::Sender<Box<Future<Item = Response<Body>, Error = Error> + Send>>>,
+    res_channel: Option<ResponseSender>,
     is_connect: bool,
     connection: Option<ServerConnection<Next, HttpService>>,
     first_req: Request<Body>,
@@ -189,21 +190,23 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
     }
 }
 
+type ResponseReciever =
+    oneshot::Receiver<Box<dyn Future<Item = Response<Body>, Error = Error> + Send>>;
+
 struct HttpService {
     client: Arc<Mutex<Option<Box<dyn Client + Send>>>>,
     req_sender: Option<oneshot::Sender<Request<Body>>>,
-    res_receiver:
-        Option<oneshot::Receiver<Box<dyn Future<Item = Response<Body>, Error = Error> + Send>>>,
+    res_receiver: Option<ResponseReciever>,
 }
 
 impl HttpService {
     fn new(
         req_sender: oneshot::Sender<Request<Body>>,
-        res_receiver: oneshot::Receiver<Box<Future<Item = Response<Body>, Error = Error> + Send>>,
+        res_receiver: ResponseReciever,
         client: Arc<Mutex<Option<Box<dyn Client + Send>>>>,
     ) -> Self {
         HttpService {
-            client: client,
+            client,
             req_sender: req_sender.into(),
             res_receiver: res_receiver.into(),
         }
@@ -221,7 +224,7 @@ impl Service for HttpService {
             self.req_sender.take().unwrap().send(req).unwrap();
             Box::new(self.res_receiver.take().unwrap().then(|r| match r {
                 Ok(f) => f,
-                Err(_) => panic!(),
+                Err(_) => unreachable!(),
             }))
         } else {
             Box::new(

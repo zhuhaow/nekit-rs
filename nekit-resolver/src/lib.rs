@@ -37,7 +37,7 @@ pub trait Resolver {
         endpoint: &Endpoint,
     ) -> Box<Future<Item = Vec<SocketAddr>, Error = Error> + Send> {
         match endpoint {
-            Endpoint::Ip(ref addr) => Box::new(ok(vec![addr.clone()])),
+            Endpoint::Ip(ref addr) => Box::new(ok(vec![*addr])),
             Endpoint::HostName(ref hostname, port) => {
                 let port = *port;
                 Box::new(self.resolve_hostname(hostname).map(move |ipaddrs| {

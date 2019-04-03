@@ -65,7 +65,7 @@ pub struct Socks5Acceptor<Next: AsyncRead + AsyncWrite> {
 
 impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
     pub fn new(next: Next) -> Self {
-        Socks5Acceptor { next: next }
+        Socks5Acceptor { next }
     }
 
     pub fn handshake(self) -> Box<Future<Item = MidHandshake<Next>, Error = Error> + Send> {
@@ -156,12 +156,12 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
                     port <<= 8;
                     port += u16::from(buf[1]);
                     future::ok(MidHandshake {
-                        next: next,
+                        next,
                         target_endpoint: match ip_or_domain {
                             IpOrDomain::Ip(ip) => {
-                                Endpoint::new_from_addr(SocketAddr::new(ip, port)).into()
+                                Endpoint::new_from_addr(SocketAddr::new(ip, port))
                             }
-                            IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port).into(),
+                            IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port),
                         },
                     })
                 }),
