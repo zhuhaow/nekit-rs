@@ -1,0 +1,13 @@
+[package]
+name = "nekit-connector"
+version = "0.1.0"
+authors = ["zhuhaow <zhuhaow@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+tokio = "^0.1"
+nekit-core = { path = "../nekit-core" }
+nekit-resolver = { path = "../nekit-resolver" }
+
+[lib]
+crate-type = ["lib", "staticlib"]

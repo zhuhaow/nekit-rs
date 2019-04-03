@@ -28,14 +28,11 @@ use hyper::{
     service::Service,
     Method, Request, Response,
 };
-use session::Session;
+use nekit_core::{Endpoint, Error};
+use nekit_http::{Client, ClientBuilder};
+use nekit_io::forward;
 use std::sync::{Arc, Mutex};
 use tokio::{io, prelude::*};
-use utils::{
-    forward,
-    http::{Client, ClientBuilder},
-    Endpoint, Error,
-};
 
 #[derive(Debug)]
 enum HttpError {
@@ -60,10 +57,7 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
         HttpAcceptor { next }
     }
 
-    pub fn handshake(
-        self,
-        session: Arc<Mutex<Session>>,
-    ) -> Box<Future<Item = MidHandshake<Next>, Error = Error> + Send> {
+    pub fn handshake(self) -> Box<Future<Item = MidHandshake<Next>, Error = Error> + Send> {
         let (req_sender, req_receiver) = oneshot::channel();
         let (res_sender, res_receiver) = oneshot::channel();
 
@@ -79,14 +73,13 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
                             req.uri().host().map(|h| h.to_string()),
                             req.uri().port_part().map(|p| p.as_u16()),
                         ) {
-                            session.lock().as_mut().unwrap().endpoint =
-                                Endpoint::HostName(host, port).into();
                             future::ok(MidHandshake {
                                 res_channel: res_sender.into(),
                                 is_connect: true,
                                 connection: None,
                                 first_req: req,
                                 client: client,
+                                target_endpoint: Endpoint::HostName(host, port).into(),
                             })
                         } else {
                             future::err(HttpError::InvalidConnectUrl)
@@ -101,14 +94,13 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
                                 port = 443;
                             }
 
-                            session.lock().as_mut().unwrap().endpoint =
-                                Endpoint::HostName(host, port).into();
                             future::ok(MidHandshake {
                                 res_channel: res_sender.into(),
                                 is_connect: false,
                                 connection: None,
                                 first_req: req,
                                 client: client,
+                                target_endpoint: Endpoint::HostName(host, port).into(),
                             })
                         } else {
                             future::err(HttpError::InvalidUrl)
@@ -121,7 +113,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
                 .map_err(|e| match e {
                     Either::A((err, _)) => Box::new(err) as Error,
                     Either::B((err, _)) => Box::new(err),
-                }).and_then(|r| match r {
+                })
+                .and_then(|r| match r {
                     Either::A((mut handshake, connection)) => {
                         handshake.connection = Some(connection);
                         future::ok(handshake)
@@ -141,9 +134,14 @@ pub struct MidHandshake<Next: AsyncRead + AsyncWrite + Send + 'static> {
     connection: Option<ServerConnection<Next, HttpService>>,
     first_req: Request<Body>,
     client: Arc<Mutex<Option<Box<dyn Client + Send>>>>,
+    target_endpoint: Endpoint,
 }
 
 impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
+    pub fn target_endpoint(&self) -> &Endpoint {
+        &self.target_endpoint
+    }
+
     pub fn complete_with<
         Io: AsyncRead + AsyncWrite + Send + 'static,
         B: ClientBuilder + Send + 'static,
@@ -157,7 +155,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
                 io::write_all(
                     self.connection.unwrap().into_parts().io,
                     "HTTP/1.1 200 Connection Established\r\n\r\n",
-                ).and_then(move |(next, _)| forward(next, io))
+                )
+                .and_then(move |(next, _)| forward(next, io))
                 .map(|_| {})
                 .from_err(),
             )
@@ -165,12 +164,11 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
             Box::new(client_conn::handshake(io).from_err().and_then(
                 move |(handler, connection)| {
                     let mut client = client_builder.build(handler);
-                    assert!(
-                        self.res_channel
-                            .unwrap()
-                            .send(Box::new(client.send_request(self.first_req).from_err()))
-                            .is_ok()
-                    );
+                    assert!(self
+                        .res_channel
+                        .unwrap()
+                        .send(Box::new(client.send_request(self.first_req).from_err()))
+                        .is_ok());
                     *self.client.lock().unwrap() = Some(client);
 
                     self.connection
@@ -179,7 +177,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
                         .map_err(|e| match e {
                             Either::A((err, _)) => Box::new(err) as Error,
                             Either::B((err, _)) => Box::new(err),
-                        }).and_then(|r| match r {
+                        })
+                        .and_then(|r| match r {
                             Either::A(_) => Box::new(future::ok(()))
                                 as Box<Future<Item = (), Error = Error> + Send>,
                             Either::B((_, conn)) => Box::new(conn.from_err()),

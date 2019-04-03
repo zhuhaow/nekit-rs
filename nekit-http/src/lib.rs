@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018 Zhuhao Wang
+// Copyright (c) 2019 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-mod tcp_connector;
-pub use self::tcp_connector::TcpConnector;
+extern crate hyper;
+extern crate nekit_core;
+extern crate tokio;
 
-use tokio::prelude::*;
-use utils::{Endpoint, Error};
+mod client;
 
-pub trait Connector<P: AsyncRead + AsyncWrite + Send> {
-    fn connect(self, endpoint: &Endpoint) -> Box<Future<Item = P, Error = Error> + Send>;
-}
+pub use client::{Client, ClientBuilder, HttpProxyTransformerBuilder, NoOpClientBuilder};

@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018 Zhuhao Wang
+// Copyright (c) 2019 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,43 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use super::{Client, ClientBuilder};
 use hyper::{body::Body, client::conn::SendRequest, Request, Response};
+use nekit_core::Error;
 use tokio::prelude::*;
-use utils::Error;
 
-pub trait ClientBuilder {
-    fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send>;
-}
-
-pub trait Client {
-    fn send_request(
-        &mut self,
-        request: Request<Body>,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send>;
-}
-
-impl Client for SendRequest<Body> {
-    fn send_request(
-        &mut self,
-        request: Request<Body>,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
-        Box::new(self.send_request(request).from_err())
-    }
-}
-
-pub struct NoOpClientBuilder {}
-
-impl ClientBuilder for NoOpClientBuilder {
-    fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send> {
-        Box::new(handler)
-    }
-}
-
-pub struct HttpProxyRewriter {
+pub struct HttpProxyTransformer {
     inner: SendRequest<Body>,
 }
 
-impl Client for HttpProxyRewriter {
+impl Client for HttpProxyTransformer {
     fn send_request(
         &mut self,
         mut request: Request<Body>,
@@ -71,14 +44,15 @@ impl Client for HttpProxyRewriter {
                 .unwrap()
         };
         *request.uri_mut() = rel_uri;
+        // TODO: Strip the proxy-* header before sending out.
         Box::new(self.inner.send_request(request).from_err())
     }
 }
 
-pub struct HttpProxyRewriterBuilder {}
+pub struct HttpProxyTransformerBuilder {}
 
-impl ClientBuilder for HttpProxyRewriterBuilder {
+impl ClientBuilder for HttpProxyTransformerBuilder {
     fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send> {
-        Box::new(HttpProxyRewriter { inner: handler })
+        Box::new(HttpProxyTransformer { inner: handler })
     }
 }

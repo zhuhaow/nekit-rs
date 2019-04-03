@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018 Zhuhao Wang
+// Copyright (c) 2019 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,30 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use connector::Connector;
-use tokio::{net::TcpStream, prelude::*};
-use utils::{Endpoint, Error, Resolver};
+extern crate nekit_core;
+extern crate nekit_io;
+extern crate tokio;
 
-pub struct TcpConnector<R: Resolver + Send> {
-    resolver: R,
-}
-
-impl<R: Resolver + Send> TcpConnector<R> {
-    pub fn new(resolver: R) -> Self {
-        TcpConnector { resolver }
-    }
-}
-
-impl<R: Resolver + Send> Connector<TcpStream> for TcpConnector<R> {
-    fn connect(
-        mut self,
-        endpoint: &Endpoint,
-    ) -> Box<Future<Item = TcpStream, Error = Error> + Send> {
-        Box::new(
-            self.resolver
-                .resolve_endpoint(endpoint)
-                // TODO: Try all IPs
-                .and_then(|addrs| TcpStream::connect(addrs.first().unwrap()).from_err()),
-        )
-    }
-}
+mod socks5_acceptor;
+pub use socks5_acceptor::Socks5Acceptor;

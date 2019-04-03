@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018 Zhuhao Wang
+// Copyright (c) 2019 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use nekit_core::{Endpoint, Error};
 use std::net::{IpAddr, SocketAddr};
 use tokio::prelude::{future::ok, Future};
-use trust_dns_resolver::AsyncResolver;
-use utils::{endpoint::Endpoint, Error};
+
+pub use trust_dns_resolver::AsyncResolver;
 
 pub trait Resolver {
     fn resolve_hostname(

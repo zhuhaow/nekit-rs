@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018 Zhuhao Wang
+// Copyright (c) 2019 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate futures;
-extern crate hyper;
-extern crate tokio;
-extern crate trust_dns_resolver;
+mod no_op_client;
+mod proxy_transform_client;
 
-pub mod acceptor;
-pub mod connector;
-pub mod session;
-pub mod utils;
+use hyper::{body::Body, client::conn::SendRequest, Request, Response};
+use nekit_core::Error;
+pub use no_op_client::NoOpClientBuilder;
+pub use proxy_transform_client::HttpProxyTransformerBuilder;
+use tokio::prelude::*;
+
+pub trait ClientBuilder {
+    fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send>;
+}
+
+pub trait Client {
+    fn send_request(
+        &mut self,
+        request: Request<Body>,
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send>;
+}
+
+impl Client for SendRequest<Body> {
+    fn send_request(
+        &mut self,
+        request: Request<Body>,
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
+        Box::new(self.send_request(request).from_err())
+    }
+}

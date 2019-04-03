@@ -1,0 +1,16 @@
+[package]
+name = "nekit-http-acceptor"
+version = "0.1.0"
+authors = ["zhuhaow <zhuhaow@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+nekit-http = { path = "../nekit-http" }
+nekit-core = { path = "../nekit-core" }
+nekit-io = { path = "../nekit-io" }
+hyper = "^0.12"
+futures = "^0.1"
+tokio = "^0.1"
+
+[lib]
+crate-type = ["lib", "staticlib"]

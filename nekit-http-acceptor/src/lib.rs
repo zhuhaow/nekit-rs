@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2018 Zhuhao Wang
+// Copyright (c) 2019 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-mod socks5_acceptor;
-pub use self::socks5_acceptor::Socks5Acceptor;
+extern crate nekit_http;
 
-pub mod http_acceptor;
-pub use self::http_acceptor::HttpAcceptor;
+mod http_acceptor;
+pub use http_acceptor::HttpAcceptor;

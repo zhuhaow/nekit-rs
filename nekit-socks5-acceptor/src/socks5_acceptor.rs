@@ -20,12 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use session::Session;
+use nekit_core::{Endpoint, Error};
+use nekit_io::forward;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::{Arc, Mutex};
-use tokio::io;
-use tokio::prelude::*;
-use utils::{forward, Endpoint, Error};
+use tokio::{io, prelude::*};
 
 #[derive(Debug)]
 enum Socks5Error {
@@ -70,10 +68,7 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
         Socks5Acceptor { next: next }
     }
 
-    pub fn handshake(
-        self,
-        session: Arc<Mutex<Session>>,
-    ) -> Box<Future<Item = MidHandshake<Next>, Error = Error> + Send> {
+    pub fn handshake(self) -> Box<Future<Item = MidHandshake<Next>, Error = Error> + Send> {
         Box::new(
             io::read_exact(self.next, [0; 2])
                 .from_err()
@@ -93,7 +88,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
 
                         Box::new(io::read_exact(next, vec![0; buf[1].into()]).from_err())
                     },
-                ).and_then(
+                )
+                .and_then(
                     |(next, buf)| -> Box<Future<Item = (Next, [u8; 2]), Error = Error> + Send> {
                         if !buf.iter().any(|x| *x == 0) {
                             return Box::new(
@@ -104,7 +100,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
                         let buf: [u8; 2] = [5, 0];
                         Box::new(io::write_all(next, buf).from_err())
                     },
-                ).and_then(|(next, _)| io::read_exact(next, [0; 4]).from_err())
+                )
+                .and_then(|(next, _)| io::read_exact(next, [0; 4]).from_err())
                 .and_then(
                     |(next, buf)| -> Box<Future<Item = (Next, IpOrDomain), Error = Error> + Send> {
                         if buf[0] != 5 {
@@ -129,7 +126,8 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
                                 io::read_exact(next, [0; 1])
                                     .and_then(|(next, buf)| {
                                         io::read_exact(next, vec![0; buf[0].into()])
-                                    }).from_err()
+                                    })
+                                    .from_err()
                                     .and_then(|(next, buf)| {
                                         let domain = String::from_utf8(buf).map_err(Into::into);
                                         let domain = future::done(domain);
@@ -146,22 +144,26 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
                             ),
                         }
                     },
-                ).and_then(|(next, ip_or_domain)| {
+                )
+                .and_then(|(next, ip_or_domain)| {
                     io::read_exact(next, [0; 2])
                         .map(move |r| (r, ip_or_domain))
                         .from_err()
-                }).and_then(move |((next, buf), ip_or_domain)| {
+                })
+                .and_then(move |((next, buf), ip_or_domain)| {
                     // TODO: Use `from_be_bytes`
                     let mut port: u16 = buf[0].into();
                     port <<= 8;
                     port += u16::from(buf[1]);
-                    session.lock().unwrap().endpoint = match ip_or_domain {
-                        IpOrDomain::Ip(ip) => {
-                            Endpoint::new_from_addr(SocketAddr::new(ip, port)).into()
-                        }
-                        IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port).into(),
-                    };
-                    future::ok(MidHandshake { next: next })
+                    future::ok(MidHandshake {
+                        next: next,
+                        target_endpoint: match ip_or_domain {
+                            IpOrDomain::Ip(ip) => {
+                                Endpoint::new_from_addr(SocketAddr::new(ip, port)).into()
+                            }
+                            IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port).into(),
+                        },
+                    })
                 }),
         )
     }
@@ -169,9 +171,14 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
 
 pub struct MidHandshake<Next: AsyncRead + AsyncWrite> {
     next: Next,
+    target_endpoint: Endpoint,
 }
 
 impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
+    pub fn target_endpoint(&self) -> &Endpoint {
+        &self.target_endpoint
+    }
+
     pub fn complete_with<Io: AsyncRead + AsyncWrite + Send + 'static>(
         self,
         io: Io,

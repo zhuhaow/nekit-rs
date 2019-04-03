@@ -1,21 +1,10 @@
-[package]
-name = "nekit"
-version = "0.1.0"
-authors = ["zhuhaow <zhuhaow@gmail.com>"]
-
-[dependencies]
-tokio = "^0.1"
-bytes = "^0.4"
-trust-dns-resolver = "^0.10"
-hyper = "^0.12"
-futures = "^0.1"
-maxminddb = "^0.12"
-
-[lib]
-name = "nekit"
-path = "src/lib.rs"
-crate-type = ["lib", "staticlib"]
-
-[[example]]
-name = "proxy"
-path = "examples/proxy.rs"
+[workspace]
+members = [
+        "nekit-core",
+        "nekit-connector",
+        "nekit-http",
+        "nekit-http-acceptor",
+        "nekit-socks5-acceptor",
+        "nekit-resolver",
+        "nekit-io"
+        ]
