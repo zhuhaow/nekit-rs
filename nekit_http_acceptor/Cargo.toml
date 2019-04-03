@@ -1,13 +1,13 @@
 [package]
-name = "nekit-http-acceptor"
+name = "nekit_http_acceptor"
 version = "0.1.0"
 authors = ["zhuhaow <zhuhaow@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-nekit-http = { path = "../nekit-http" }
-nekit-core = { path = "../nekit-core" }
-nekit-io = { path = "../nekit-io" }
+nekit_http = { path = "../nekit_http" }
+nekit_core = { path = "../nekit_core" }
+nekit_io = { path = "../nekit_io" }
 hyper = "^0.12"
 futures = "^0.1"
 tokio = "^0.1"

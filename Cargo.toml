@@ -1,10 +1,10 @@
 [workspace]
 members = [
-        "nekit-core",
-        "nekit-connector",
-        "nekit-http",
-        "nekit-http-acceptor",
-        "nekit-socks5-acceptor",
-        "nekit-resolver",
-        "nekit-io"
+        "nekit_core",
+        "nekit_connector",
+        "nekit_http",
+        "nekit_http_acceptor",
+        "nekit_socks5_acceptor",
+        "nekit_resolver",
+        "nekit_io"
         ]

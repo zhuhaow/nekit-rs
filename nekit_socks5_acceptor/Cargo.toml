@@ -1,0 +1,13 @@
+[package]
+name = "nekit_socks5_acceptor"
+version = "0.1.0"
+authors = ["zhuhaow <zhuhaow@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+tokio = "^0.1"
+nekit_core = { path = "../nekit_core" }
+nekit_io = { path = "../nekit_io" }
+
+[lib]
+crate-type = ["lib", "staticlib"]

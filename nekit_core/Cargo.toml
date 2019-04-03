@@ -1,13 +1,8 @@
 [package]
-name = "nekit-http"
+name = "nekit_core"
 version = "0.1.0"
 authors = ["zhuhaow <zhuhaow@gmail.com>"]
 edition = "2018"
-
-[dependencies]
-hyper = "^0.12"
-tokio = "^0.1"
-nekit-core = { path = "../nekit-core" }
 
 [lib]
 crate-type = ["lib", "staticlib"]
