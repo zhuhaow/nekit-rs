@@ -20,9 +20,5 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate nekit_core;
-extern crate nekit_io;
-extern crate tokio;
-
-mod socks5_acceptor;
-pub use socks5_acceptor::Socks5Acceptor;
+pub mod http;
+pub mod socks5;

@@ -20,31 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::Connector;
-use nekit_core::{Endpoint, Error};
-use nekit_resolver::Resolver;
-use tokio::{net::TcpStream, prelude::*};
+extern crate tokio;
 
-pub struct TcpConnector<R: Resolver + Send> {
-    resolver: R,
-}
+use crate::core::{Endpoint, Error};
+use tokio::prelude::*;
 
-impl<R: Resolver + Send> TcpConnector<R> {
-    pub fn new(resolver: R) -> Self {
-        TcpConnector { resolver }
-    }
-}
+mod tcp_connector;
+pub use self::tcp_connector::TcpConnector;
 
-impl<R: Resolver + Send> Connector<TcpStream> for TcpConnector<R> {
-    fn connect(
-        mut self,
-        endpoint: &Endpoint,
-    ) -> Box<Future<Item = TcpStream, Error = Error> + Send> {
-        Box::new(
-            self.resolver
-                .resolve_endpoint(endpoint)
-                // TODO: Try all IPs
-                .and_then(|addrs| TcpStream::connect(addrs.first().unwrap()).from_err()),
-        )
-    }
+pub trait Connector<P: AsyncRead + AsyncWrite + Send> {
+    fn connect(self, endpoint: &Endpoint) -> Box<Future<Item = P, Error = Error> + Send>;
 }

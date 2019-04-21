@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use nekit_core::{Endpoint, Error};
+use crate::core::{Endpoint, Error};
 use std::net::{IpAddr, SocketAddr};
 use tokio::prelude::{future::ok, Future};
 

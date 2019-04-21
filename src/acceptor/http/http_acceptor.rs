@@ -20,6 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use super::{Client, ClientBuilder};
+use crate::core::{Endpoint, Error};
+use crate::io::forward;
 use futures::{future::Either, sync::oneshot};
 use hyper::{
     body::Body,
@@ -28,9 +31,6 @@ use hyper::{
     service::Service,
     Method, Request, Response,
 };
-use nekit_core::{Endpoint, Error};
-use nekit_http::{Client, ClientBuilder};
-use nekit_io::forward;
 use std::sync::{Arc, Mutex};
 use tokio::{io, prelude::*};
 

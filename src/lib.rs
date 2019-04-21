@@ -20,39 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::{Client, ClientBuilder};
-use hyper::{body::Body, client::conn::SendRequest, Request, Response};
-use nekit_core::Error;
-use tokio::prelude::*;
-
-pub struct HttpProxyTransformer {
-    inner: SendRequest<Body>,
-}
-
-impl Client for HttpProxyTransformer {
-    fn send_request(
-        &mut self,
-        mut request: Request<Body>,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
-        let rel_uri = {
-            request
-                .uri()
-                .path_and_query()
-                .map(|p| p.as_str())
-                .unwrap_or(&"/")
-                .parse()
-                .unwrap()
-        };
-        *request.uri_mut() = rel_uri;
-        // TODO: Strip the proxy-* header before sending out.
-        Box::new(self.inner.send_request(request).from_err())
-    }
-}
-
-pub struct HttpProxyTransformerBuilder {}
-
-impl ClientBuilder for HttpProxyTransformerBuilder {
-    fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send> {
-        Box::new(HttpProxyTransformer { inner: handler })
-    }
-}
+pub mod acceptor;
+pub mod connector;
+pub mod core;
+pub mod io;
+pub mod resolver;

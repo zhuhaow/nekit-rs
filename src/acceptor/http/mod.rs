@@ -20,7 +20,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate nekit_http;
-
 mod http_acceptor;
+mod no_op_client;
+mod proxy_transform_client;
+
+use crate::core::Error;
 pub use http_acceptor::HttpAcceptor;
+use hyper::{body::Body, client::conn::SendRequest, Request, Response};
+pub use no_op_client::NoOpClientBuilder;
+pub use proxy_transform_client::HttpProxyTransformerBuilder;
+use tokio::prelude::*;
+
+pub trait ClientBuilder {
+    fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send>;
+}
+
+pub trait Client {
+    fn send_request(
+        &mut self,
+        request: Request<Body>,
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send>;
+}
+
+impl Client for SendRequest<Body> {
+    fn send_request(
+        &mut self,
+        request: Request<Body>,
+    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
+        Box::new(self.send_request(request).from_err())
+    }
+}

@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2019 Zhuhao Wang
+// Copyright (c) 2018 Zhuhao Wang
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate hyper;
-extern crate nekit_core;
-extern crate tokio;
+use super::Connector;
+use crate::core::{Endpoint, Error};
+use crate::resolver::Resolver;
+use tokio::{net::TcpStream, prelude::*};
 
-mod client;
+pub struct TcpConnector<R: Resolver + Send> {
+    resolver: R,
+}
 
-pub use client::{Client, ClientBuilder, HttpProxyTransformerBuilder, NoOpClientBuilder};
+impl<R: Resolver + Send> TcpConnector<R> {
+    pub fn new(resolver: R) -> Self {
+        TcpConnector { resolver }
+    }
+}
+
+impl<R: Resolver + Send> Connector<TcpStream> for TcpConnector<R> {
+    fn connect(
+        mut self,
+        endpoint: &Endpoint,
+    ) -> Box<Future<Item = TcpStream, Error = Error> + Send> {
+        Box::new(
+            self.resolver
+                .resolve_endpoint(endpoint)
+                // TODO: Try all IPs
+                .and_then(|addrs| TcpStream::connect(addrs.first().unwrap()).from_err()),
+        )
+    }
+}
