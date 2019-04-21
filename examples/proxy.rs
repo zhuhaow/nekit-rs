@@ -1,8 +1,8 @@
-extern crate nekit;
+extern crate freighter;
 extern crate tokio;
 extern crate trust_dns_resolver;
 
-use nekit::{acceptor::*, connector::*};
+use freighter::{acceptor::*, connector::*};
 use tokio::net::TcpListener;
 use tokio::prelude::*;
 use trust_dns_resolver::{

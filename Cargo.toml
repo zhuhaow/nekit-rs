@@ -1,5 +1,5 @@
 [package]
-name = "nekit"
+name = "freighter"
 version = "0.1.0"
 authors = ["zhuhaow <zhuhaow@gmail.com>"]
 edition = "2018"
