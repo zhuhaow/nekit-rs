@@ -81,6 +81,9 @@ environment:
       target: i686-pc-windows-gnu
       #cargoflags: --features "unstable"
 
+cache:
+    - 'C:\Users\appveyor\.cargo'
+    
 ### Allowed failures ###
 
 # See Appveyor documentation for specific details. In short, place any channel or targets you wish
