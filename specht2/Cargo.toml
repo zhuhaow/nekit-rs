@@ -1,0 +1,11 @@
+[package]
+name = "specht2"
+version = "0.1.0"
+authors = ["zhuhaow <zhuhaow@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+freighter = { path = "../freighter" }
+
+[lib]
+crate-type = ["lib", "staticlib"]
