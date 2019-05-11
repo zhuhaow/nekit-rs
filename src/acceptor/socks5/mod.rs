@@ -151,10 +151,7 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
                         .from_err()
                 })
                 .and_then(move |((next, buf), ip_or_domain)| {
-                    // TODO: Use `from_be_bytes`
-                    let mut port: u16 = buf[0].into();
-                    port <<= 8;
-                    port += u16::from(buf[1]);
+                    let port = u16::from_be_bytes(buf);
                     future::ok(MidHandshake {
                         next,
                         target_endpoint: match ip_or_domain {
