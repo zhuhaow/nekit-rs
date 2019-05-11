@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 freighter = { path = "../" }
+tokio = "^0.1"
 
 [lib]
 crate-type = ["lib", "staticlib"]
