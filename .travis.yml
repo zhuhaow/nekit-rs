@@ -69,10 +69,16 @@ jobs:
       rust: nightly
     - <<: *TEST
       os: osx
+      rust: stable
+      after_success: ""
+    - <<: *TEST
+      os: osx
       rust: beta
+      after_success: ""
     - <<: *TEST
       os: osx
       rust: nightly
+      after_success: ""
     - &IOS_TEST
       stage: test
       os: osx
