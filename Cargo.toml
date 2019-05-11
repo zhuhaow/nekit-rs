@@ -1,2 +1,17 @@
+[package]
+name = "freighter"
+version = "0.1.0"
+authors = ["zhuhaow <zhuhaow@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+hyper = "^0.12"
+futures = "^0.1"
+tokio = "^0.1"
+trust-dns-resolver = "^0.10"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
 [workspace]
-members = ["freighter", "specht2"]
+members = ["specht2"]

@@ -5,7 +5,7 @@ authors = ["zhuhaow <zhuhaow@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-freighter = { path = "../freighter" }
+freighter = { path = "../" }
 
 [lib]
 crate-type = ["lib", "staticlib"]
