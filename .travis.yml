@@ -1,15 +1,6 @@
 language: rust
 cache: cargo
 
-rust:
-  - stable
-  - beta
-  - nightly
-
-os:
-  - osx
-  - linux
-
 addons:
   apt:
     packages:
@@ -19,42 +10,74 @@ addons:
       - cmake
       - gcc
       - binutils-dev
-matrix:
+
+stages:
+  - lint
+  - clippy
+  - test
+  
+jobs:
   include:
-    - os: osx
+    - &LINT
+      stage: lint
+      os: linux
       rust: stable
-      env: TOOLCHAIN=IOS
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
+      script: 
+        - cargo fmt --all -- --check
+    - <<: *LINT
+      rust: beta
+    - <<: *LINT
+      rust: nightly
 
-script:
-  - |
-    if [ -z "$TOOLCHAIN" ]
-    then
-      cargo test --verbose --all
-    else
-      if [ $TOOLCHAIN == "IOS" ]
-      then
-        rustup target add aarch64-apple-ios x86_64-apple-ios
-        cargo install cargo-lipo
-        cargo lipo --release --targets aarch64-apple-ios,x86_64-apple-ios
-      fi
-    fi
-
-after_success: |
-  if [[ "$TOOLCHAIN" != "IOS" ]]; then
-    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-    tar xzf master.tar.gz &&
-    cd kcov-master &&
-    mkdir build &&
-    cd build &&
-    cmake .. &&
-    make &&
-    make install DESTDIR=../../kcov-build &&
-    cd ../.. &&
-    rm -rf kcov-master &&
-    for file in target/debug/freighter*; do [ -x "${file}" ] || continue; mkdir -p "target/cov/$(basename $file)"; ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
-    bash <(curl -s https://codecov.io/bash) &&
-    echo "Uploaded code coverage"
-  fi
+    - stage: clippy
+      os: linux
+      rust: nightly
+      before_script:
+        - rustup component add clippy-preview
+      script:
+        - cargo clippy
+    
+    - &TEST
+      stage: test
+      os: linux
+      rust: stable
+      script:
+        - cargo test --verbose --all
+      after_success: |
+        wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+        tar xzf master.tar.gz &&
+        cd kcov-master &&
+        mkdir build &&
+        cd build &&
+        cmake .. &&
+        make &&
+        make install DESTDIR=../../kcov-build &&
+        cd ../.. &&
+        rm -rf kcov-master &&
+        for file in target/debug/freighter*; do [ -x "${file}" ] || continue; mkdir -p "target/cov/$(basename $file)"; ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
+        bash <(curl -s https://codecov.io/bash) &&
+        echo "Uploaded code coverage"
+    - <<: *TEST
+      rust: beta
+    - <<: *TEST
+      rust: nightly
+    - <<: *TEST
+      os: osx
+      rust: beta
+    - <<: *TEST
+      os: osx
+      rust: nightly
+    - &IOS_TEST
+      stage: test
+      os: osx
+      rust: stable
+      before_script:
+        - rustup target add aarch64-apple-ios x86_64-apple-ios
+        - cargo install cargo-lipo
+      script:
+        - cargo lipo --release --targets aarch64-apple-ios,x86_64-apple-ios
+    - <<: *IOS_TEST
+      rust: beta
+    - <<: *IOS_TEST
+      rust: nightly
+      
