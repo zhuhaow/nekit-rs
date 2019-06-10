@@ -24,6 +24,7 @@ use super::{Client, ClientBuilder};
 use crate::core::{Endpoint, Error};
 use crate::io::forward;
 use futures::{future::Either, sync::oneshot};
+use http::uri::Scheme;
 use hyper::{
     body::Body,
     client::conn as client_conn,
@@ -90,7 +91,7 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> HttpAcceptor<Next> {
                             let mut port = 80;
                             if let Some(p) = req.uri().port_part() {
                                 port = p.as_u16();
-                            } else if req.uri().scheme_part().map(|s| s.as_str()) == Some("https") {
+                            } else if req.uri().scheme_part() == Some(&Scheme::HTTPS) {
                                 port = 443;
                             }
 
