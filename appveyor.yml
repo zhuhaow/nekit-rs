@@ -86,7 +86,7 @@ environment:
 
 cache:
     - 'C:\Users\appveyor\.cargo'
-    
+
 ### Allowed failures ###
 
 # See Appveyor documentation for specific details. In short, place any channel or targets you wish
