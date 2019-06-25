@@ -20,6 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate freighter;
+use freighter::core::{Endpoint, Error};
+use tokio::prelude::*;
 
-pub mod connection;
+mod fn_router;
+
+pub use fn_router::FnRouter;
+
+trait Router {
+    type Item: AsyncRead + AsyncWrite + Sync + 'static;
+    type Fut: Future<Item = Self::Item, Error = Error>;
+
+    fn route(&mut self, endpoint: &Endpoint) -> Self::Fut;
+}
