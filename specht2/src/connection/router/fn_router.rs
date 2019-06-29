@@ -26,15 +26,25 @@ use tokio::prelude::*;
 
 pub struct FnRouter<'a, P, Fut>
 where
-    P: AsyncRead + AsyncWrite + Sync + 'static,
+    P: AsyncRead + AsyncWrite + Send,
     Fut: Future<Item = P, Error = Error>,
 {
-    inner: Box<FnMut(&Endpoint) -> Fut + 'a>,
+    inner: Box<FnMut(&Endpoint) -> Fut + Send + 'a>,
 }
 
-impl<'a, P, Fut> Router for FnRouter<'a, P, Fut>
+impl<'a, P, Fut> FnRouter<'a, P, Fut>
 where
-    P: AsyncRead + AsyncWrite + Sync + 'static,
+    P: AsyncRead + AsyncWrite + Send,
+    Fut: Future<Item = P, Error = Error>,
+{
+    pub fn new<F: FnMut(&Endpoint) -> Fut + Send + 'a>(f: F) -> Self {
+        FnRouter { inner: Box::new(f) }
+    }
+}
+
+impl<P, Fut> Router for FnRouter<'_, P, Fut>
+where
+    P: AsyncRead + AsyncWrite + Send,
     Fut: Future<Item = P, Error = Error>,
 {
     type Item = P;

@@ -27,8 +27,8 @@ mod fn_router;
 
 pub use fn_router::FnRouter;
 
-trait Router {
-    type Item: AsyncRead + AsyncWrite + Sync + 'static;
+pub trait Router {
+    type Item: AsyncRead + AsyncWrite + Send;
     type Fut: Future<Item = Self::Item, Error = Error>;
 
     fn route(&mut self, endpoint: &Endpoint) -> Self::Fut;
