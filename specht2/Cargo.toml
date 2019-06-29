@@ -7,6 +7,11 @@ edition = "2018"
 [dependencies]
 freighter = { path = "../" }
 tokio = "^0.1"
+trust-dns-resolver = "^0.11"
 
 [lib]
 crate-type = ["lib", "staticlib"]
+
+[[bin]]
+name = "specht"
+path = "src/instance.rs"
