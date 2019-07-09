@@ -24,12 +24,14 @@ use freighter::core::{Endpoint, Error};
 use tokio::prelude::*;
 
 mod fn_router;
+mod sequence_router;
 
 pub use fn_router::FnRouter;
+pub use sequence_router::SequenceRouter;
 
 pub trait Router {
     type Item: AsyncRead + AsyncWrite + Send;
     type Fut: Future<Item = Self::Item, Error = Error>;
 
-    fn route(&mut self, endpoint: &Endpoint) -> Self::Fut;
+    fn route(&self, endpoint: &Endpoint) -> Self::Fut;
 }

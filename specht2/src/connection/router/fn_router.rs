@@ -29,7 +29,7 @@ where
     P: AsyncRead + AsyncWrite + Send,
     Fut: Future<Item = P, Error = Error>,
 {
-    inner: Box<FnMut(&Endpoint) -> Fut + Send + 'a>,
+    inner: Box<Fn(&Endpoint) -> Fut + Send + Sync + 'a>,
 }
 
 impl<'a, P, Fut> FnRouter<'a, P, Fut>
@@ -37,7 +37,7 @@ where
     P: AsyncRead + AsyncWrite + Send,
     Fut: Future<Item = P, Error = Error>,
 {
-    pub fn new<F: FnMut(&Endpoint) -> Fut + Send + 'a>(f: F) -> Self {
+    pub fn new<F: Fn(&Endpoint) -> Fut + Send + Sync + 'a>(f: F) -> Self {
         FnRouter { inner: Box::new(f) }
     }
 }
@@ -50,7 +50,7 @@ where
     type Item = P;
     type Fut = Fut;
 
-    fn route(&mut self, endpoint: &Endpoint) -> Self::Fut {
+    fn route(&self, endpoint: &Endpoint) -> Self::Fut {
         (self.inner)(endpoint)
     }
 }
