@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#![recursion_limit = "128"]
+
 use freighter::acceptor::http::HttpAcceptor;
 use freighter::acceptor::http::HttpProxyTransformerBuilder;
 use freighter::connector::Connector;
