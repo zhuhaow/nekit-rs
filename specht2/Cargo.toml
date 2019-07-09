@@ -16,4 +16,3 @@ crate-type = ["lib", "staticlib"]
 
 [[bin]]
 name = "specht"
-path = "src/instance.rs"

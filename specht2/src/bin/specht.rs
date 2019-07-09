@@ -27,7 +27,7 @@ use freighter::connector::TcpConnector;
 use freighter::resolver::AsyncResolver;
 use specht2::connection::router::FnRouter;
 use specht2::connection::router::Router;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::net::tcp::TcpListener;
 use tokio::prelude::*;
 use trust_dns_resolver::config::{ResolverConfig, ResolverOpts};
@@ -39,9 +39,9 @@ fn main() {
     let (resolver, background) =
         AsyncResolver::new(ResolverConfig::default(), ResolverOpts::default());
 
-    let router = Arc::new(Mutex::new(FnRouter::new(move |endpoint| {
+    let router = Arc::new(FnRouter::new(move |endpoint| {
         TcpConnector::new(resolver.clone()).connect(endpoint)
-    })));
+    }));
 
     let server = listener
         .incoming()
@@ -50,15 +50,13 @@ fn main() {
             println!("Got a new connection!");
 
             let acceptor = HttpAcceptor::new(sock);
-            let mut router = Arc::clone(&router);
+            let router = Arc::clone(&router);
 
             let acceptor = acceptor
                 .handshake()
                 .and_then(move |mid_result| {
-                    Arc::get_mut(&mut router)
-                        .unwrap()
-                        .get_mut()
-                        .unwrap()
+                    router
+                        .as_ref()
                         .route(mid_result.target_endpoint())
                         .map(|p| (mid_result, p))
                         .from_err()
