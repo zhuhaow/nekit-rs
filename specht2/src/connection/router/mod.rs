@@ -29,6 +29,19 @@ mod sequence_router;
 pub use fn_router::FnRouter;
 pub use sequence_router::SequenceRouter;
 
+#[derive(Debug)]
+pub enum RouteError {
+    NoRouteToDestinaion,
+}
+
+impl std::fmt::Display for RouteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{:#?}", self)
+    }
+}
+
+impl std::error::Error for RouteError {}
+
 pub trait Router {
     type Item: AsyncRead + AsyncWrite + Send;
     type Fut: Future<Item = Self::Item, Error = Error>;
