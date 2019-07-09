@@ -47,7 +47,7 @@ where
         }
     }
 
-    pub fn add(&mut self, router: Box<Router<Item = P, Fut = Fut>>) {
+    pub fn push(&mut self, router: Box<Router<Item = P, Fut = Fut>>) {
         Arc::get_mut(&mut self.rules).unwrap().push(router)
     }
 }
