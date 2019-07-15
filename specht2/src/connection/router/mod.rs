@@ -20,4 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod handler;
+use freighter::core::{Endpoint, Error};
+use tokio::prelude::*;
+
+mod fn_router;
+mod sequence_router;
+
+pub use fn_router::FnRouter;
+pub use sequence_router::SequenceRouter;
+
+#[derive(Debug)]
+pub enum RouteError {
+    NoRouteToDestinaion,
+}
+
+impl std::fmt::Display for RouteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{:#?}", self)
+    }
+}
+
+impl std::error::Error for RouteError {}
+
+pub trait Router {
+    type Item: AsyncRead + AsyncWrite + Send;
+    type Fut: Future<Item = Self::Item, Error = Error>;
+
+    fn route(&self, endpoint: &Endpoint) -> Self::Fut;
+}

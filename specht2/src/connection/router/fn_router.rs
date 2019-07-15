@@ -20,4 +20,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod handler;
+use super::Router;
+use freighter::core::{Endpoint, Error};
+use tokio::prelude::*;
+
+pub struct FnRouter<'a, P, Fut>
+where
+    P: AsyncRead + AsyncWrite + Send,
+    Fut: Future<Item = P, Error = Error>,
+{
+    inner: Box<Fn(&Endpoint) -> Fut + Send + Sync + 'a>,
+}
+
+impl<'a, P, Fut> FnRouter<'a, P, Fut>
+where
+    P: AsyncRead + AsyncWrite + Send,
+    Fut: Future<Item = P, Error = Error>,
+{
+    pub fn new<F: Fn(&Endpoint) -> Fut + Send + Sync + 'a>(f: F) -> Self {
+        FnRouter { inner: Box::new(f) }
+    }
+}
+
+impl<P, Fut> Router for FnRouter<'_, P, Fut>
+where
+    P: AsyncRead + AsyncWrite + Send,
+    Fut: Future<Item = P, Error = Error>,
+{
+    type Item = P;
+    type Fut = Fut;
+
+    fn route(&self, endpoint: &Endpoint) -> Self::Fut {
+        (self.inner)(endpoint)
+    }
+}
