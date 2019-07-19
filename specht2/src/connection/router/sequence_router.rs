@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::RouteError;
-use super::Router;
+use super::{RouteError, Router};
 use freighter::core::{Endpoint, Error};
 use future_utils::StreamExt;
 use futures::stream::iter_ok;

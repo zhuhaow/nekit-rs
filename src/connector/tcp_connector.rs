@@ -21,8 +21,10 @@
 // SOFTWARE.
 
 use super::Connector;
-use crate::core::{Endpoint, Error};
-use crate::resolver::Resolver;
+use crate::{
+    core::{Endpoint, Error},
+    resolver::Resolver,
+};
 use tokio::{net::TcpStream, prelude::*};
 
 pub struct TcpConnector<R: Resolver + Send> {

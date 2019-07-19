@@ -20,8 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::core::{Endpoint, Error};
-use crate::io::forward;
+use crate::{
+    core::{Endpoint, Error},
+    io::forward,
+};
 use std::net::{IpAddr, SocketAddr};
 use tokio::{io, prelude::*};
 

@@ -22,16 +22,14 @@
 
 #![recursion_limit = "128"]
 
-use freighter::acceptor::http::HttpAcceptor;
-use freighter::acceptor::http::HttpProxyTransformerBuilder;
-use freighter::connector::Connector;
-use freighter::connector::TcpConnector;
-use freighter::resolver::AsyncResolver;
-use specht2::connection::router::FnRouter;
-use specht2::connection::router::Router;
+use freighter::{
+    acceptor::http::{HttpAcceptor, HttpProxyTransformerBuilder},
+    connector::{Connector, TcpConnector},
+    resolver::AsyncResolver,
+};
+use specht2::connection::router::{FnRouter, Router};
 use std::sync::Arc;
-use tokio::net::tcp::TcpListener;
-use tokio::prelude::*;
+use tokio::{net::tcp::TcpListener, prelude::*};
 use trust_dns_resolver::config::{ResolverConfig, ResolverOpts};
 
 fn main() {

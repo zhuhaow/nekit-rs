@@ -21,8 +21,10 @@
 // SOFTWARE.
 
 use super::{Client, ClientBuilder};
-use crate::core::{Endpoint, Error};
-use crate::io::forward;
+use crate::{
+    core::{Endpoint, Error},
+    io::forward,
+};
 use futures::{future::Either, sync::oneshot};
 use http::uri::Scheme;
 use hyper::{
