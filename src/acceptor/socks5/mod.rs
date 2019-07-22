@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::acceptor::Acceptor;
+use crate::acceptor::MidHandshake;
 use crate::{
     core::{Endpoint, Error},
     io::forward,
@@ -69,8 +71,15 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
     pub fn new(next: Next) -> Self {
         Socks5Acceptor { next }
     }
+}
 
-    pub fn handshake(self) -> Box<Future<Item = MidHandshake<Next>, Error = Error> + Send> {
+impl<Next: AsyncRead + AsyncWrite + Send + 'static>
+    Acceptor<
+        Socks5MidHandshake<Next>,
+        Box<Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send>,
+    > for Socks5Acceptor<Next>
+{
+    fn handshake(self) -> Box<Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send> {
         Box::new(
             io::read_exact(self.next, [0; 2])
                 .from_err()
@@ -154,7 +163,7 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
                 })
                 .and_then(move |((next, buf), ip_or_domain)| {
                     let port = u16::from_be_bytes(buf);
-                    future::ok(MidHandshake {
+                    future::ok(Socks5MidHandshake {
                         next,
                         target_endpoint: match ip_or_domain {
                             IpOrDomain::Ip(ip) => {
@@ -168,17 +177,17 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
     }
 }
 
-pub struct MidHandshake<Next: AsyncRead + AsyncWrite> {
+pub struct Socks5MidHandshake<Next: AsyncRead + AsyncWrite> {
     next: Next,
     target_endpoint: Endpoint,
 }
 
-impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake<Next> {
-    pub fn target_endpoint(&self) -> &Endpoint {
+impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake for Socks5MidHandshake<Next> {
+    fn target_endpoint(&self) -> &Endpoint {
         &self.target_endpoint
     }
 
-    pub fn complete_with<Io: AsyncRead + AsyncWrite + Send + 'static>(
+    fn complete_with<Io: AsyncRead + AsyncWrite + Send + 'static>(
         self,
         io: Io,
     ) -> Box<Future<Item = (), Error = Error> + Send> {
