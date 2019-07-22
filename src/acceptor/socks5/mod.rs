@@ -20,9 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::acceptor::Acceptor;
-use crate::acceptor::MidHandshake;
 use crate::{
+    acceptor::{Acceptor, MidHandshake},
     core::{Endpoint, Error},
     io::forward,
 };
