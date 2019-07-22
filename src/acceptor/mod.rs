@@ -20,5 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use super::core::{Endpoint, Error};
+use tokio::prelude::*;
+
 pub mod http;
 pub mod socks5;
+
+trait Acceptor<M: MidHandshake, Fut>
+where
+    Fut: Future<Item = M, Error = Error> + Send,
+{
+    fn handshake(self) -> Fut;
+}
+
+trait MidHandshake {
+    fn target_endpoint(&self) -> &Endpoint;
+    fn complete_with<Io: AsyncRead + AsyncWrite + Send + 'static>(
+        self,
+        io: Io,
+    ) -> Box<Future<Item = (), Error = Error> + Send>;
+}
