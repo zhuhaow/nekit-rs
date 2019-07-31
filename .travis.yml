@@ -2,8 +2,10 @@ language: rust
 cache:
   directories:
     - $HOME/.cargo
-    - $TRAVIS_BUILD_DIR/target
     - $HOME/.rustup
+
+before_cache:
+  - rm -rf $HOME/.cargo/registry
 
 addons:
   apt:
