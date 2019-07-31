@@ -2,7 +2,6 @@ language: rust
 cache:
   directories:
     - $HOME/.cargo
-    - $HOME/.rustup
 
 before_cache:
   - rm -rf $HOME/.cargo/registry
