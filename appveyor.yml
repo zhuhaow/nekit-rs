@@ -63,6 +63,11 @@ environment:
       target: x86_64-pc-windows-gnu
       #cargoflags: --features "unstable"
 
+matrix:
+  exclude:
+    - os: Visual Studio 2019
+      target: x86_64-pc-windows-gnu
+
 cache:
     - 'C:\Users\appveyor\.cargo'
 
