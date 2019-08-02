@@ -96,3 +96,8 @@ jobs:
     - <<: *IOS_TEST
       rust: nightly
 
+  allow_failures:
+    - <<: *LINT
+      rust: nightly
+
+
