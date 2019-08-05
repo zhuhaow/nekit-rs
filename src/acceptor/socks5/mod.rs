@@ -72,13 +72,11 @@ impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
     }
 }
 
-impl<Next: AsyncRead + AsyncWrite + Send + 'static>
-    Acceptor<
-        Socks5MidHandshake<Next>,
-        Box<Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send>,
-    > for Socks5Acceptor<Next>
-{
-    fn handshake(self) -> Box<Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send> {
+impl<Next: AsyncRead + AsyncWrite + Send + 'static> Acceptor for Socks5Acceptor<Next> {
+    type Item = Socks5MidHandshake<Next>;
+    type Fut = Box<dyn Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send>;
+
+    fn handshake(self) -> Box<dyn Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send> {
         Box::new(
             io::read_exact(self.next, [0; 2])
                 .from_err()
@@ -181,7 +179,7 @@ pub struct Socks5MidHandshake<Next: AsyncRead + AsyncWrite> {
     target_endpoint: Endpoint,
 }
 
-impl<Next: AsyncRead + AsyncWrite + Send + 'static> MidHandshake for Socks5MidHandshake<Next> {
+impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5MidHandshake<Next> {
     fn target_endpoint(&self) -> &Endpoint {
         &self.target_endpoint
     }
