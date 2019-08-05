@@ -26,17 +26,9 @@ use tokio::prelude::*;
 pub mod http;
 pub mod socks5;
 
-trait Acceptor<M: MidHandshake, Fut>
-where
-    Fut: Future<Item = M, Error = Error> + Send,
-{
-    fn handshake(self) -> Fut;
-}
+trait Acceptor {
+    type Item;
+    type Fut: Future<Item = Self::Item, Error = Error> + Send;
 
-trait MidHandshake {
-    fn target_endpoint(&self) -> &Endpoint;
-    fn complete_with<Io: AsyncRead + AsyncWrite + Send + 'static>(
-        self,
-        io: Io,
-    ) -> Box<Future<Item = (), Error = Error> + Send>;
+    fn handshake(self) -> Self::Fut;
 }
