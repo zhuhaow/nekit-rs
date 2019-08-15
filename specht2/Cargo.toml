@@ -6,10 +6,11 @@ edition = "2018"
 
 [dependencies]
 freighter = { path = "../" }
-tokio = "^0.1"
+tokio = "0.2.0-alpha.1"
+hyper = { git = "https://github.com/hyperium/hyper" }
 trust-dns-resolver = "^0.12"
-future-utils = "^0.12"
-futures = "^0.1"
+futures-preview = { version = "0.3.0-alpha.17", features = ["compat"] }
+http = "^0.1"
 
 [lib]
 crate-type = ["lib", "staticlib"]

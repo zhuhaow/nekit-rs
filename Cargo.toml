@@ -5,10 +5,10 @@ authors = ["zhuhaow <zhuhaow@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-hyper = "^0.12"
-futures = "^0.1"
-tokio = "^0.1"
+tokio = "0.2.0-alpha.1"
+hyper = { git = "https://github.com/hyperium/hyper" }
 trust-dns-resolver = "^0.12"
+futures-preview = { version = "0.3.0-alpha.17", features = ["compat"] }
 http = "^0.1"
 
 [lib]
