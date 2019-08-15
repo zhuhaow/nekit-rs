@@ -26,15 +26,15 @@ jobs:
     - &LINT
       stage: lint
       os: linux
-      rust: stable
+      rust: nightly
       before_script:
         - rustup component add rustfmt
       script:
         - cargo fmt --all -- --check
-    - <<: *LINT
-      rust: beta
-    - <<: *LINT
-      rust: nightly
+    # - <<: *LINT
+    #   rust: beta
+    # - <<: *LINT
+    #   rust: stable
 
     - stage: clippy
       os: linux
@@ -47,7 +47,7 @@ jobs:
     - &TEST
       stage: test
       os: linux
-      rust: stable
+      rust: nightly
       script:
         - cargo test --verbose --all
       after_success: |
@@ -64,26 +64,25 @@ jobs:
         for file in target/debug/freighter*; do [ -x "${file}" ] || continue; mkdir -p "target/cov/$(basename $file)"; ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
         bash <(curl -s https://codecov.io/bash) &&
         echo "Uploaded code coverage"
-    - <<: *TEST
-      rust: beta
-    - <<: *TEST
-      rust: nightly
-    - <<: *TEST
-      os: osx
-      rust: stable
-      after_success: ""
+    # - <<: *TEST
+    #   rust: beta
+    # - <<: *TEST
+    #   rust: stable
     - <<: *TEST
       os: osx
-      rust: beta
       after_success: ""
-    - <<: *TEST
-      os: osx
-      rust: nightly
-      after_success: ""
+    # - <<: *TEST
+    #   os: osx
+    #   rust: beta
+    #   after_success: ""
+    # - <<: *TEST
+    #   os: osx
+    #   rust: stable
+    #   after_success: ""
     - &IOS_TEST
       stage: test
       os: osx
-      rust: stable
+      rust: nightly
       name: "iOS build"
       before_script:
         - rustup target add aarch64-apple-ios x86_64-apple-ios
@@ -91,10 +90,10 @@ jobs:
         - cargo install --force cargo-lipo
       script:
         - cargo lipo --release --targets aarch64-apple-ios,x86_64-apple-ios
-    - <<: *IOS_TEST
-      rust: beta
-    - <<: *IOS_TEST
-      rust: nightly
+    # - <<: *IOS_TEST
+    #   rust: beta
+    # - <<: *IOS_TEST
+    #   rust: stable
 
   allow_failures:
     - <<: *LINT
