@@ -20,17 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use tokio::prelude::*;
+use crate::core::Result;
+use futures::{
+    future,
+    io::{AsyncRead, AsyncReadExt, AsyncWrite},
+};
 
-pub fn forward<P1: AsyncRead + AsyncWrite + Send, P2: AsyncRead + AsyncWrite + Send>(
+pub async fn forward<P1: AsyncRead + AsyncWrite + Send, P2: AsyncRead + AsyncWrite + Send>(
     p1: P1,
     p2: P2,
-) -> impl Future<Error = std::io::Error> {
-    let (read1, write1) = p1.split();
-    let (read2, write2) = p2.split();
+) -> Result<()> {
+    let (read1, mut write1) = p1.split();
+    let (read2, mut write2) = p2.split();
 
-    let c1 = tokio::io::copy(read1, write2);
-    let c2 = tokio::io::copy(read2, write1);
-
-    c1.join(c2)
+    future::try_join(read1.copy_into(&mut write2), read2.copy_into(&mut write1))
+        .await
+        .map(|_| ())
+        .map_err(Into::into)
 }
