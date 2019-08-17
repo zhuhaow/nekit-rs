@@ -24,6 +24,7 @@ use crate::{
     acceptor::Acceptor,
     core::{Endpoint, Error, Result},
 };
+use async_trait::async_trait;
 use futures::{
     future::{BoxFuture, FutureExt, TryFutureExt},
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
@@ -74,85 +75,80 @@ impl<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> Socks5Acceptor<T> {
     }
 }
 
-async fn handshake<T: AsyncRead + AsyncWrite + Send + Unpin + 'static>(
-    acceptor: Socks5Acceptor<T>,
-) -> Result<Socks5MidHandshake<T>> {
-    let mut buf = [0; 2];
-    let mut io = acceptor.io;
-    io.read_exact(&mut buf).err_into::<Error>().await?;
-
-    if buf[0] != 5 {
-        return Err(Socks5Error::UnsupportedVersion.into());
-    }
-
-    if buf[1] == 0 {
-        return Err(Socks5Error::InvalidMethodCount.into());
-    }
-
-    let mut buf = vec![0, buf[1].into()];
-
-    io.read_exact(&mut buf).err_into::<Error>().await?;
-
-    if !buf.iter().any(|x| *x == 0) {
-        return Err(Socks5Error::UnsupportedAuthMethod.into());
-    }
-
-    let buf: [u8; 2] = [5, 0];
-    io.write_all(&buf).err_into::<Error>().await?;
-
-    let mut buf = [0; 4];
-    io.read_exact(&mut buf).err_into::<Error>().await?;
-
-    if buf[0] != 5 {
-        return Err(Socks5Error::UnsupportedVersion.into());
-    }
-
-    if buf[1] != 1 {
-        return Err(Socks5Error::UnsupportedCommand.into());
-    }
-
-    let ip_or_domain = match buf[3] {
-        1 => {
-            let mut buf = [0; 4];
-            io.read_exact(&mut buf).err_into::<Error>().await?;
-            IpAddr::from(buf).into()
-        }
-        3 => {
-            let mut buf = [0; 1];
-            io.read_exact(&mut buf).err_into::<Error>().await?;
-
-            let mut buf = vec![0; buf[0].into()];
-
-            io.read_exact(&mut buf).await?;
-            let domain = String::from_utf8(buf).map_err(Into::<Error>::into)?;
-            IpOrDomain::Domain(domain)
-        }
-        4 => {
-            let mut buf = [0; 16];
-            io.read_exact(&mut buf).err_into::<Error>().await?;
-            IpAddr::from(buf).into()
-        }
-        _ => return Err(Socks5Error::UnsupportedAddressType.into()),
-    };
-
-    let mut buf = [0; 2];
-    io.read_exact(&mut buf).err_into::<Error>().await?;
-
-    let port = u16::from_be_bytes(buf);
-    return Ok(Socks5MidHandshake {
-        io,
-        target_endpoint: match ip_or_domain {
-            IpOrDomain::Ip(ip) => Endpoint::new_from_addr(SocketAddr::new(ip, port)),
-            IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port),
-        },
-    });
-}
-
+#[async_trait]
 impl<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> Acceptor<Socks5MidHandshake<T>>
     for Socks5Acceptor<T>
 {
-    fn handshake(self) -> BoxFuture<'static, Result<Socks5MidHandshake<T>>> {
-        handshake(self).boxed()
+    async fn handshake(mut self) -> Result<Socks5MidHandshake<T>> {
+        let mut buf = [0; 2];
+        let mut io = self.io;
+        io.read_exact(&mut buf).err_into::<Error>().await?;
+
+        if buf[0] != 5 {
+            return Err(Socks5Error::UnsupportedVersion.into());
+        }
+
+        if buf[1] == 0 {
+            return Err(Socks5Error::InvalidMethodCount.into());
+        }
+
+        let mut buf = vec![0, buf[1].into()];
+
+        io.read_exact(&mut buf).err_into::<Error>().await?;
+
+        if !buf.iter().any(|x| *x == 0) {
+            return Err(Socks5Error::UnsupportedAuthMethod.into());
+        }
+
+        let buf: [u8; 2] = [5, 0];
+        io.write_all(&buf).err_into::<Error>().await?;
+
+        let mut buf = [0; 4];
+        io.read_exact(&mut buf).err_into::<Error>().await?;
+
+        if buf[0] != 5 {
+            return Err(Socks5Error::UnsupportedVersion.into());
+        }
+
+        if buf[1] != 1 {
+            return Err(Socks5Error::UnsupportedCommand.into());
+        }
+
+        let ip_or_domain = match buf[3] {
+            1 => {
+                let mut buf = [0; 4];
+                io.read_exact(&mut buf).err_into::<Error>().await?;
+                IpAddr::from(buf).into()
+            }
+            3 => {
+                let mut buf = [0; 1];
+                io.read_exact(&mut buf).err_into::<Error>().await?;
+
+                let mut buf = vec![0; buf[0].into()];
+
+                io.read_exact(&mut buf).await?;
+                let domain = String::from_utf8(buf).map_err(Into::<Error>::into)?;
+                IpOrDomain::Domain(domain)
+            }
+            4 => {
+                let mut buf = [0; 16];
+                io.read_exact(&mut buf).err_into::<Error>().await?;
+                IpAddr::from(buf).into()
+            }
+            _ => return Err(Socks5Error::UnsupportedAddressType.into()),
+        };
+
+        let mut buf = [0; 2];
+        io.read_exact(&mut buf).err_into::<Error>().await?;
+
+        let port = u16::from_be_bytes(buf);
+        return Ok(Socks5MidHandshake {
+            io,
+            target_endpoint: match ip_or_domain {
+                IpOrDomain::Ip(ip) => Endpoint::new_from_addr(SocketAddr::new(ip, port)),
+                IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port),
+            },
+        });
     }
 }
 

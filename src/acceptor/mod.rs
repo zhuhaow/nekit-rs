@@ -21,11 +21,12 @@
 // SOFTWARE.
 
 use crate::core::Result;
-use futures::future::BoxFuture;
+use async_trait::async_trait;
 
 // pub mod http;
 pub mod socks5;
 
+#[async_trait]
 pub trait Acceptor<T> {
-    fn handshake(self) -> BoxFuture<'static, Result<T>>;
+    async fn handshake(self) -> Result<T>;
 }
