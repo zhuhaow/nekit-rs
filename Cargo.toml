@@ -15,5 +15,5 @@ async-trait = "^0.1"
 [lib]
 crate-type = ["lib", "staticlib"]
 
-[workspace]
-members = ["specht2"]
+# [workspace]
+# members = ["specht2"]
