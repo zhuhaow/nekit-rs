@@ -21,12 +21,14 @@
 // SOFTWARE.
 
 use crate::{
-    acceptor::{Acceptor, MidHandshake},
-    core::{Endpoint, Error},
-    io::forward,
+    acceptor::Acceptor,
+    core::{Endpoint, Error, Result},
+};
+use futures::{
+    future::{BoxFuture, FutureExt, TryFutureExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
 };
 use std::net::{IpAddr, SocketAddr};
-use tokio::{io, prelude::*};
 
 #[derive(Debug)]
 enum Socks5Error {
@@ -62,138 +64,117 @@ impl From<String> for IpOrDomain {
     }
 }
 
-pub struct Socks5Acceptor<Next: AsyncRead + AsyncWrite> {
-    next: Next,
+pub struct Socks5Acceptor<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> {
+    io: T,
 }
 
-impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5Acceptor<Next> {
-    pub fn new(next: Next) -> Self {
-        Socks5Acceptor { next }
+impl<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> Socks5Acceptor<T> {
+    pub fn new(io: T) -> Self {
+        Socks5Acceptor { io }
     }
 }
 
-impl<Next: AsyncRead + AsyncWrite + Send + 'static> Acceptor for Socks5Acceptor<Next> {
-    type Item = Socks5MidHandshake<Next>;
-    type Fut = Box<dyn Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send>;
+async fn handshake<T: AsyncRead + AsyncWrite + Send + Unpin + 'static>(
+    acceptor: Socks5Acceptor<T>,
+) -> Result<Socks5MidHandshake<T>> {
+    let mut buf = [0; 2];
+    let mut io = acceptor.io;
+    io.read_exact(&mut buf).err_into::<Error>().await?;
 
-    fn handshake(self) -> Box<dyn Future<Item = Socks5MidHandshake<Next>, Error = Error> + Send> {
-        Box::new(
-            io::read_exact(self.next, [0; 2])
-                .from_err()
-                .and_then(
-                    |(next, buf)| -> Box<Future<Item = (Next, Vec<u8>), Error = Error> + Send> {
-                        if buf[0] != 5 {
-                            return Box::new(
-                                future::err(Socks5Error::UnsupportedVersion).from_err(),
-                            );
-                        }
+    if buf[0] != 5 {
+        return Err(Socks5Error::UnsupportedVersion.into());
+    }
 
-                        if buf[1] == 0 {
-                            return Box::new(
-                                future::err(Socks5Error::InvalidMethodCount).from_err(),
-                            );
-                        }
+    if buf[1] == 0 {
+        return Err(Socks5Error::InvalidMethodCount.into());
+    }
 
-                        Box::new(io::read_exact(next, vec![0; buf[1].into()]).from_err())
-                    },
-                )
-                .and_then(
-                    |(next, buf)| -> Box<Future<Item = (Next, [u8; 2]), Error = Error> + Send> {
-                        if !buf.iter().any(|x| *x == 0) {
-                            return Box::new(
-                                future::err(Socks5Error::UnsupportedAuthMethod).from_err(),
-                            );
-                        }
+    let mut buf = vec![0, buf[1].into()];
 
-                        let buf: [u8; 2] = [5, 0];
-                        Box::new(io::write_all(next, buf).from_err())
-                    },
-                )
-                .and_then(|(next, _)| io::read_exact(next, [0; 4]).from_err())
-                .and_then(
-                    |(next, buf)| -> Box<Future<Item = (Next, IpOrDomain), Error = Error> + Send> {
-                        if buf[0] != 5 {
-                            return Box::new(
-                                future::err(Socks5Error::UnsupportedVersion).from_err(),
-                            );
-                        }
+    io.read_exact(&mut buf).err_into::<Error>().await?;
 
-                        if buf[1] != 1 {
-                            return Box::new(
-                                future::err(Socks5Error::UnsupportedCommand).from_err(),
-                            );
-                        }
+    if !buf.iter().any(|x| *x == 0) {
+        return Err(Socks5Error::UnsupportedAuthMethod.into());
+    }
 
-                        match buf[3] {
-                            1 => Box::new(
-                                io::read_exact(next, [0; 4])
-                                    .map(|(next, buf)| (next, IpAddr::from(buf).into()))
-                                    .from_err(),
-                            ),
-                            3 => Box::new(
-                                io::read_exact(next, [0; 1])
-                                    .and_then(|(next, buf)| {
-                                        io::read_exact(next, vec![0; buf[0].into()])
-                                    })
-                                    .from_err()
-                                    .and_then(|(next, buf)| {
-                                        let domain = String::from_utf8(buf).map_err(Into::into);
-                                        let domain = future::done(domain);
-                                        domain.map(move |d| (next, IpOrDomain::Domain(d)))
-                                    }),
-                            ),
-                            4 => Box::new(
-                                io::read_exact(next, [0; 16])
-                                    .map(|(next, buf)| (next, IpAddr::from(buf).into()))
-                                    .from_err(),
-                            ),
-                            _ => Box::new(
-                                future::err(Socks5Error::UnsupportedAddressType).from_err(),
-                            ),
-                        }
-                    },
-                )
-                .and_then(|(next, ip_or_domain)| {
-                    io::read_exact(next, [0; 2])
-                        .map(move |r| (r, ip_or_domain))
-                        .from_err()
-                })
-                .and_then(move |((next, buf), ip_or_domain)| {
-                    let port = u16::from_be_bytes(buf);
-                    future::ok(Socks5MidHandshake {
-                        next,
-                        target_endpoint: match ip_or_domain {
-                            IpOrDomain::Ip(ip) => {
-                                Endpoint::new_from_addr(SocketAddr::new(ip, port))
-                            }
-                            IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port),
-                        },
-                    })
-                }),
-        )
+    let buf: [u8; 2] = [5, 0];
+    io.write_all(&buf).err_into::<Error>().await?;
+
+    let mut buf = [0; 4];
+    io.read_exact(&mut buf).err_into::<Error>().await?;
+
+    if buf[0] != 5 {
+        return Err(Socks5Error::UnsupportedVersion.into());
+    }
+
+    if buf[1] != 1 {
+        return Err(Socks5Error::UnsupportedCommand.into());
+    }
+
+    let ip_or_domain = match buf[3] {
+        1 => {
+            let mut buf = [0; 4];
+            io.read_exact(&mut buf).err_into::<Error>().await?;
+            IpAddr::from(buf).into()
+        }
+        3 => {
+            let mut buf = [0; 1];
+            io.read_exact(&mut buf).err_into::<Error>().await?;
+
+            let mut buf = vec![0; buf[0].into()];
+
+            io.read_exact(&mut buf).await?;
+            let domain = String::from_utf8(buf).map_err(Into::<Error>::into)?;
+            IpOrDomain::Domain(domain)
+        }
+        4 => {
+            let mut buf = [0; 16];
+            io.read_exact(&mut buf).err_into::<Error>().await?;
+            IpAddr::from(buf).into()
+        }
+        _ => return Err(Socks5Error::UnsupportedAddressType.into()),
+    };
+
+    let mut buf = [0; 2];
+    io.read_exact(&mut buf).err_into::<Error>().await?;
+
+    let port = u16::from_be_bytes(buf);
+    return Ok(Socks5MidHandshake {
+        io,
+        target_endpoint: match ip_or_domain {
+            IpOrDomain::Ip(ip) => Endpoint::new_from_addr(SocketAddr::new(ip, port)),
+            IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port),
+        },
+    });
+}
+
+impl<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> Acceptor<Socks5MidHandshake<T>>
+    for Socks5Acceptor<T>
+{
+    fn handshake(self) -> BoxFuture<'static, Result<Socks5MidHandshake<T>>> {
+        handshake(self).boxed()
     }
 }
 
-pub struct Socks5MidHandshake<Next: AsyncRead + AsyncWrite> {
-    next: Next,
+pub struct Socks5MidHandshake<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> {
+    io: T,
     target_endpoint: Endpoint,
 }
 
-impl<Next: AsyncRead + AsyncWrite + Send + 'static> Socks5MidHandshake<Next> {
-    fn target_endpoint(&self) -> &Endpoint {
+async fn finalize<T: AsyncRead + AsyncWrite + Send + Unpin + 'static>(
+    mut acceptor: Socks5MidHandshake<T>,
+) -> Result<T> {
+    let buf = [5, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+    acceptor.io.write_all(&buf).err_into::<Error>().await?;
+    Ok(acceptor.io)
+}
+
+impl<I: AsyncRead + AsyncWrite + Send + Unpin + 'static> Socks5MidHandshake<I> {
+    pub fn target_endpoint(&self) -> &Endpoint {
         &self.target_endpoint
     }
 
-    fn complete_with<Io: AsyncRead + AsyncWrite + Send + 'static>(
-        self,
-        io: Io,
-    ) -> Box<Future<Item = (), Error = Error> + Send> {
-        Box::new(
-            io::write_all(self.next, [5, 0, 0, 1, 0, 0, 0, 0, 0, 0])
-                .map(|(p, _)| p)
-                .and_then(move |p| forward(p, io))
-                .map(|_| {})
-                .from_err(),
-        )
+    pub fn finalize(self) -> BoxFuture<'static, Result<I>> {
+        finalize(self).boxed()
     }
 }

@@ -20,15 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use super::core::{Endpoint, Error};
-use tokio::prelude::*;
+use crate::core::Result;
+use futures::future::BoxFuture;
 
 pub mod http;
 pub mod socks5;
 
-trait Acceptor {
-    type Item;
-    type Fut: Future<Item = Self::Item, Error = Error> + Send;
-
-    fn handshake(self) -> Self::Fut;
+pub trait Acceptor<T> {
+    fn handshake(self) -> BoxFuture<'static, Result<T>>;
 }
