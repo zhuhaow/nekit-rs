@@ -23,11 +23,12 @@
 extern crate tokio;
 
 use crate::core::{Endpoint, Result};
-use futures::future::BoxFuture;
+use async_trait::async_trait;
 
 mod tcp_connector;
 pub use self::tcp_connector::TcpConnector;
 
+#[async_trait]
 pub trait Connector<T> {
-    fn connect(self, endpoint: &Endpoint) -> BoxFuture<Result<T>>;
+    async fn connect(self, endpoint: &Endpoint) -> Result<T>;
 }

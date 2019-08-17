@@ -22,10 +22,11 @@
 
 use super::Connector;
 use crate::{
-    core::{Endpoint, Result},
+    core::{Endpoint, Error, Result},
     resolver::Resolver,
 };
-use futures::future::{BoxFuture, FutureExt, TryFutureExt};
+use async_trait::async_trait;
+use futures::future::TryFutureExt;
 use tokio::net::TcpStream;
 
 pub struct TcpConnector<R: Resolver + Send + 'static> {
@@ -38,13 +39,13 @@ impl<R: Resolver + Send + 'static> TcpConnector<R> {
     }
 }
 
+#[async_trait]
 impl<R: Resolver + Send + 'static> Connector<TcpStream> for TcpConnector<R> {
-    fn connect(self, endpoint: &Endpoint) -> BoxFuture<Result<TcpStream>> {
-        self.resolver
-            .resolve_endpoint(endpoint)
-            // TODO: Try all IPs
-            .map_ok(|addrs| addrs.first().unwrap().clone())
-            .and_then(|addr| TcpStream::connect(&addr).err_into())
-            .boxed()
+    async fn connect(self, endpoint: &Endpoint) -> Result<TcpStream> {
+        let addrs = self.resolver.resolve_endpoint(endpoint).await?;
+        // TODO: Try all IPs
+        Ok(TcpStream::connect(addrs.first().unwrap())
+            .err_into::<Error>()
+            .await?)
     }
 }
