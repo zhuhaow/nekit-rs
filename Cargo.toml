@@ -10,6 +10,7 @@ hyper = { git = "https://github.com/hyperium/hyper" }
 trust-dns-resolver = "^0.12"
 futures-preview = { version = "0.3.0-alpha.17", features = ["compat"] }
 http = "^0.1"
+async-trait = "^0.1"
 
 [lib]
 crate-type = ["lib", "staticlib"]
