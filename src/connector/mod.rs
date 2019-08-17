@@ -22,12 +22,12 @@
 
 extern crate tokio;
 
-use crate::core::{Endpoint, Error};
-use tokio::prelude::*;
+use crate::core::{Endpoint, Result};
+use futures::future::BoxFuture;
 
 mod tcp_connector;
 pub use self::tcp_connector::TcpConnector;
 
-pub trait Connector<P: AsyncRead + AsyncWrite + Send> {
-    fn connect(self, endpoint: &Endpoint) -> Box<Future<Item = P, Error = Error> + Send>;
+pub trait Connector<T> {
+    fn connect(self, endpoint: &Endpoint) -> BoxFuture<Result<T>>;
 }

@@ -22,31 +22,29 @@
 
 use super::Connector;
 use crate::{
-    core::{Endpoint, Error},
+    core::{Endpoint, Result},
     resolver::Resolver,
 };
-use tokio::{net::TcpStream, prelude::*};
+use futures::future::{BoxFuture, FutureExt, TryFutureExt};
+use tokio::net::TcpStream;
 
-pub struct TcpConnector<R: Resolver + Send> {
+pub struct TcpConnector<R: Resolver + Send + 'static> {
     resolver: R,
 }
 
-impl<R: Resolver + Send> TcpConnector<R> {
+impl<R: Resolver + Send + 'static> TcpConnector<R> {
     pub fn new(resolver: R) -> Self {
         TcpConnector { resolver }
     }
 }
 
-impl<R: Resolver + Send> Connector<TcpStream> for TcpConnector<R> {
-    fn connect(
-        mut self,
-        endpoint: &Endpoint,
-    ) -> Box<Future<Item = TcpStream, Error = Error> + Send> {
-        Box::new(
-            self.resolver
-                .resolve_endpoint(endpoint)
-                // TODO: Try all IPs
-                .and_then(|addrs| TcpStream::connect(addrs.first().unwrap()).from_err()),
-        )
+impl<R: Resolver + Send + 'static> Connector<TcpStream> for TcpConnector<R> {
+    fn connect(self, endpoint: &Endpoint) -> BoxFuture<Result<TcpStream>> {
+        self.resolver
+            .resolve_endpoint(endpoint)
+            // TODO: Try all IPs
+            .map_ok(|addrs| addrs.first().unwrap().clone())
+            .and_then(|addr| TcpStream::connect(&addr).err_into())
+            .boxed()
     }
 }
