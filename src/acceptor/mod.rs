@@ -23,7 +23,7 @@
 use crate::core::Result;
 use futures::future::BoxFuture;
 
-pub mod http;
+// pub mod http;
 pub mod socks5;
 
 pub trait Acceptor<T> {
