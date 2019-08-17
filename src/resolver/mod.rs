@@ -20,47 +20,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::core::{Endpoint, Error};
+use crate::core::{Endpoint, Result};
+use futures::{
+    compat::Future01CompatExt,
+    future::{self, BoxFuture, FutureExt, TryFutureExt},
+};
 use std::net::{IpAddr, SocketAddr};
-use tokio::prelude::{future::ok, Future};
 
 pub use trust_dns_resolver::AsyncResolver;
 
 pub trait Resolver {
-    fn resolve_hostname(
-        &mut self,
-        hostname: &str,
-    ) -> Box<Future<Item = Vec<IpAddr>, Error = Error> + Send>;
+    fn resolve_hostname(&mut self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>>;
 
-    fn resolve_endpoint(
-        &mut self,
-        endpoint: &Endpoint,
-    ) -> Box<Future<Item = Vec<SocketAddr>, Error = Error> + Send> {
-        match endpoint {
-            Endpoint::Ip(ref addr) => Box::new(ok(vec![*addr])),
-            Endpoint::HostName(ref hostname, port) => {
-                let port = *port;
-                Box::new(self.resolve_hostname(hostname).map(move |ipaddrs| {
+    fn resolve_endpoint(&mut self, endpoint: &Endpoint) -> BoxFuture<Result<Vec<SocketAddr>>> {
+        match *endpoint {
+            Endpoint::Ip(ref addr) => future::ok(vec![*addr]).left_future(),
+            Endpoint::HostName(ref hostname, port) => self
+                .resolve_hostname(hostname)
+                .map_ok(move |ipaddrs| {
                     ipaddrs
                         .iter()
                         .map(|ip| SocketAddr::new(*ip, port))
                         .collect()
-                }))
-            }
+                })
+                .right_future(),
         }
+        .boxed()
     }
 }
 
 impl Resolver for AsyncResolver {
-    fn resolve_hostname(
-        &mut self,
-        hostname: &str,
-    ) -> Box<Future<Item = Vec<IpAddr>, Error = Error> + Send> {
-        Box::new(
-            self.lookup_ip(hostname)
-                .map(|addrs| addrs.iter().collect())
-                .from_err::<std::io::Error>()
-                .from_err(),
-        )
+    fn resolve_hostname(&mut self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>> {
+        self.lookup_ip(hostname)
+            .compat()
+            .map_ok(|addrs| addrs.iter().collect())
+            .err_into::<std::io::Error>()
+            .err_into()
+            .boxed()
     }
 }
