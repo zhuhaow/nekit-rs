@@ -36,7 +36,8 @@ jobs:
     # - <<: *LINT
     #   rust: stable
 
-    - stage: clippy
+    - &CLIPPY
+      stage: clippy
       os: linux
       rust: nightly
       before_script:
@@ -98,5 +99,6 @@ jobs:
   allow_failures:
     - <<: *LINT
       rust: nightly
+    - <<: *CLIPPY
 
 
