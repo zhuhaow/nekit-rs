@@ -21,8 +21,10 @@
 // SOFTWARE.
 
 pub use std::error::Error as StdError;
+pub use std::result::Result as StdResult;
 
 pub type Error = Box<dyn StdError + Sync + Send + 'static>;
+pub type Result<T> = StdResult<T, Error>;
 
 mod endpoint;
 pub use self::endpoint::Endpoint;
