@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub use std::error::Error as StdError;
-pub use std::result::Result as StdResult;
+pub use std::{error::Error as StdError, result::Result as StdResult};
 
 pub type Error = Box<dyn StdError + Sync + Send + 'static>;
 pub type Result<T> = StdResult<T, Error>;
