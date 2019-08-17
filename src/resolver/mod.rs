@@ -30,9 +30,12 @@ use std::net::{IpAddr, SocketAddr};
 pub use trust_dns_resolver::AsyncResolver;
 
 pub trait Resolver {
-    fn resolve_hostname(&mut self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>>;
+    fn resolve_hostname(self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>>;
 
-    fn resolve_endpoint(&mut self, endpoint: &Endpoint) -> BoxFuture<Result<Vec<SocketAddr>>> {
+    fn resolve_endpoint(self, endpoint: &Endpoint) -> BoxFuture<Result<Vec<SocketAddr>>>
+    where
+        Self: Sized,
+    {
         match *endpoint {
             Endpoint::Ip(ref addr) => future::ok(vec![*addr]).left_future(),
             Endpoint::HostName(ref hostname, port) => self
@@ -50,8 +53,9 @@ pub trait Resolver {
 }
 
 impl Resolver for AsyncResolver {
-    fn resolve_hostname(&mut self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>> {
-        self.lookup_ip(hostname)
+    fn resolve_hostname(mut self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>> {
+        (&mut self)
+            .lookup_ip(hostname)
             .compat()
             .map_ok(|addrs| addrs.iter().collect())
             .err_into::<std::io::Error>()
