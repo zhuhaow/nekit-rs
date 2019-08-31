@@ -17,12 +17,12 @@ jobs:
       - name: Install rustfmt
         run: rustup component add rustfmt
       - name: Install clippy
-        run: rustup component add clippy
+        run: rustup component add clippy || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
       - uses: actions/checkout@v1
       - name: Lint
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --all-targets --all-features
+        run: cargo clippy --all-targets --all-features -- -D warnings
   test:
     name: Test
     runs-on: ${{ matrix.os }}
