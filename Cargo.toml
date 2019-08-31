@@ -14,7 +14,7 @@ async-trait = "^0.1"
 futures-tokio-compat = { git = 'https://github.com/Nemo157/futures-tokio-compat' }
 
 [lib]
-crate-type = ["lib", "staticlib"]
+crate-type = ["lib"]
 
 # [workspace]
 # members = ["specht2"]
