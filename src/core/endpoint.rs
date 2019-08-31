@@ -22,7 +22,7 @@
 
 use std::net::SocketAddr;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Endpoint {
     HostName(String, u16),
     Ip(SocketAddr),

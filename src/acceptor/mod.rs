@@ -23,7 +23,7 @@
 use crate::core::Result;
 use async_trait::async_trait;
 
-// pub mod http;
+pub mod http;
 pub mod socks5;
 
 #[async_trait]

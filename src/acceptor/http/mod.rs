@@ -20,33 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-mod http_acceptor;
-mod no_op_client;
-mod proxy_transform_client;
+mod connect_acceptor;
+pub use connect_acceptor::HttpConnectAcceptor;
 
-use crate::core::Error;
-pub use http_acceptor::HttpAcceptor;
-use hyper::{body::Body, client::conn::SendRequest, Request, Response};
-pub use no_op_client::NoOpClientBuilder;
-pub use proxy_transform_client::HttpProxyTransformerBuilder;
-use tokio::prelude::*;
-
-pub trait ClientBuilder {
-    fn build(self, handler: SendRequest<Body>) -> Box<dyn Client + Send>;
+#[derive(Debug)]
+pub enum HttpError {
+    InvalidCommand(String),
+    InvalidConnectUrl(String),
+    InvalidUrl(String),
+    ClosedWithoutRequest,
 }
 
-pub trait Client {
-    fn send_request(
-        &mut self,
-        request: Request<Body>,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send>;
-}
-
-impl Client for SendRequest<Body> {
-    fn send_request(
-        &mut self,
-        request: Request<Body>,
-    ) -> Box<Future<Item = Response<Body>, Error = Error> + Send> {
-        Box::new(self.send_request(request).from_err())
+impl std::fmt::Display for HttpError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{:#?}", self)
     }
 }
+
+impl std::error::Error for HttpError {}
