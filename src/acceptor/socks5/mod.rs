@@ -142,13 +142,13 @@ impl<T: AsyncRead + AsyncWrite + Send + Unpin + 'static> Acceptor<Socks5MidHands
         io.read_exact(&mut buf).err_into::<Error>().await?;
 
         let port = u16::from_be_bytes(buf);
-        return Ok(Socks5MidHandshake {
+        Ok(Socks5MidHandshake {
             io,
             target_endpoint: match ip_or_domain {
                 IpOrDomain::Ip(ip) => Endpoint::new_from_addr(SocketAddr::new(ip, port)),
                 IpOrDomain::Domain(d) => Endpoint::new_from_hostname(&d, port),
             },
-        });
+        })
     }
 }
 

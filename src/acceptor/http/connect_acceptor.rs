@@ -82,7 +82,7 @@ impl<T: AsyncRead + AsyncWrite + Send + Unpin + 'static>
         match res {
             Ok(Either::Left((endpoint, connection))) => Ok(HttpConnectMidHandshake {
                 io: Compat::new(connection.into_parts().io),
-                endpoint: endpoint,
+                endpoint,
             }),
             Ok(Either::Right((_, _))) => Err(HttpError::ClosedWithoutRequest.into()),
             Err(Either::Right((err, _))) => Err(err.into()),

@@ -53,8 +53,8 @@ pub trait Resolver {
 }
 
 impl Resolver for AsyncResolver {
-    fn resolve_hostname(mut self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>> {
-        (&mut self)
+    fn resolve_hostname(self, hostname: &str) -> BoxFuture<Result<Vec<IpAddr>>> {
+        (&self)
             .lookup_ip(hostname)
             .compat()
             .map_ok(|addrs| addrs.iter().collect())
