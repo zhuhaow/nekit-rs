@@ -40,3 +40,21 @@ jobs:
         run: cargo build --verbose --all
       - name: Run tests
         run: cargo test --verbose --all
+  test_ios:
+    name: Test iOS
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        rust: [nightly]
+    needs: lint
+    steps:
+      - uses: hecrj/setup-rust-action@v1.0.2
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v1
+      - name: Install cargo-lipo
+        run: |
+          rustup target add aarch64-apple-ios x86_64-apple-ios
+          cargo install --force cargo-lipo
+      - name: Build
+        run: cargo lipo --release --targets aarch64-apple-ios,x86_64-apple-ios
