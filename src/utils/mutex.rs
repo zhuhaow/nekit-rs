@@ -20,17 +20,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#![feature(async_closure)]
+pub use mutex::OwningMutexGuard;
 
-#[macro_use]
-extern crate rental;
+rental! {
+    mod mutex {
+        use futures::lock::{Mutex, MutexGuard};
+        use std::sync::Arc;
 
-#[macro_use]
-extern crate derive_new;
-
-pub mod acceptor;
-pub mod connector;
-pub mod core;
-pub mod io;
-pub mod resolver;
-pub mod utils;
+        #[rental(deref_mut_suffix)]
+        pub struct OwningMutexGuard<T: 'static> {
+            mutex: Arc<Mutex<T>>,
+            guard: MutexGuard<'mutex, T>,
+        }
+    }
+}

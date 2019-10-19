@@ -21,7 +21,10 @@
 // SOFTWARE.
 
 mod connect_acceptor;
+mod rewrite_acceptor;
+
 pub use connect_acceptor::HttpConnectAcceptor;
+pub use rewrite_acceptor::{HttpRewriteAcceptor, RewriteResult, Rewriter};
 
 #[derive(Debug)]
 pub enum HttpError {

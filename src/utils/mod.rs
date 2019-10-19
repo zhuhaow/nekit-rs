@@ -20,17 +20,5 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#![feature(async_closure)]
-
-#[macro_use]
-extern crate rental;
-
-#[macro_use]
-extern crate derive_new;
-
-pub mod acceptor;
-pub mod connector;
-pub mod core;
-pub mod io;
-pub mod resolver;
-pub mod utils;
+mod mutex;
+pub use mutex::OwningMutexGuard;
