@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 tokio = "0.2.0-alpha.4"
 hyper = { git = "https://github.com/hyperium/hyper" }
-trust-dns-resolver = "^0.12"
+trust-dns-resolver = "^0.19"
 futures-preview = { version = "0.3.0-alpha.18", features = ["compat", "io-compat"] }
 http = "^0.1"
 async-trait = "^0.1"
